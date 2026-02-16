@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HBS Speaker Event Tracker</title>
+<style>
+  :root {
+    --crimson: #A51C30;
+    --crimson-light: #e8d3d7;
+    --crimson-dark: #7a1423;
+    --green: #2d8a4e;
+    --green-bg: #e6f4ec;
+    --yellow: #b8860b;
+    --yellow-bg: #fdf6e3;
+    --gray: #6b7280;
+    --gray-bg: #f3f4f6;
+    --bg: #f8f7f5;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --text-secondary: #555;
+    --border: #e5e5e5;
+    --urgent: #dc2626;
+    --teal: #0d7377;
+    --teal-light: #e0f2f1;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* Header */
+  .header {
+    background: var(--crimson);
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .header-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .header-stat {
+    background: rgba(255,255,255,0.15);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .header-stat strong { font-size: 16px; margin-right: 3px; }
+  .btn-header {
+    background: white;
+    color: var(--crimson);
+    border: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-header:hover { opacity: 0.85; }
+
+  /* Timeline */
+  .timeline-section {
+    padding: 16px 24px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+  }
+  .timeline-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .timeline {
+    position: relative;
+    height: 72px;
+    background: var(--gray-bg);
+    border-radius: 8px;
+    overflow: visible;
+  }
+  .timeline-track {
+    position: absolute;
+    top: 34px;
+    left: 24px;
+    right: 24px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+  .timeline-today {
+    position: absolute;
+    top: 20px;
+    width: 2px;
+    height: 32px;
+    background: var(--urgent);
+    z-index: 5;
+  }
+  .timeline-today::after {
+    content: 'TODAY';
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--urgent);
+    letter-spacing: 0.5px;
+  }
+  .timeline-event {
+    position: absolute;
+    top: 24px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--crimson);
+    border: 3px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+    z-index: 10;
+    transition: transform 0.15s;
+    transform: translateX(-12px);
+  }
+  .timeline-event:hover { transform: translateX(-12px) scale(1.3); }
+  .timeline-event.past { background: var(--gray); }
+  .timeline-event.tt { background: var(--teal); }
+  .timeline-event.tt.past { background: #9ca3af; }
+  .timeline-event.active { background: var(--green); box-shadow: 0 0 0 4px rgba(45,138,78,0.25); }
+  .timeline-event-label {
+    position: absolute;
+    top: 44px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* Filters */
+  .filters {
+    padding: 12px 24px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: white;
+    border-bottom: 1px solid var(--border);
+  }
+  .filter-group { display: flex; gap: 4px; align-items: center; }
+  .filter-group-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  .filter-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: white;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-secondary);
+  }
+  .filter-btn:hover { border-color: var(--crimson); color: var(--crimson); }
+  .filter-btn.active { background: var(--crimson); color: white; border-color: var(--crimson); }
+  .filter-sep { width: 1px; height: 24px; background: var(--border); margin: 0 6px; }
+
+  /* Cards */
+  .cards { padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+
+  .speaker-card {
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+  }
+  .speaker-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+  .speaker-card.urgent { border-left: 4px solid var(--urgent); }
+  .speaker-card.hidden-past { display: none; }
+  .speaker-card.table-talk { border-left: 4px solid var(--teal); }
+
+  .card-header {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    gap: 8px;
+  }
+  .card-header:hover { background: var(--gray-bg); }
+  .card-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .card-date-badge {
+    background: var(--crimson-light);
+    color: var(--crimson-dark);
+    padding: 6px 10px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 50px;
+    flex-shrink: 0;
+  }
+  .table-talk .card-date-badge { background: var(--teal-light); color: var(--teal); }
+  .card-date-badge .month { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .card-date-badge .day { font-size: 20px; font-weight: 700; line-height: 1.1; }
+  .card-info { min-width: 0; }
+  .card-info h3 { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-info .meta { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-info .meta span { margin-right: 10px; }
+  .event-type-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+  .event-type-badge.speaker { background: var(--crimson-light); color: var(--crimson-dark); }
+  .event-type-badge.tabletalk { background: var(--teal-light); color: var(--teal); }
+  .card-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .countdown {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .countdown.urgent { background: #fef2f2; color: var(--urgent); }
+  .countdown.soon { background: #fdf6e3; color: var(--yellow); }
+  .countdown.normal { background: var(--gray-bg); color: var(--gray); }
+  .countdown.past { background: var(--green-bg); color: var(--green); }
+
+  .progress-mini {
+    width: 100px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .progress-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: var(--gray-bg);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--crimson);
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .progress-bar-fill.complete { background: var(--green); }
+  .table-talk .progress-bar-fill { background: var(--teal); }
+  .progress-text { font-size: 11px; color: var(--text-secondary); font-weight: 600; white-space: nowrap; }
+
+  .expand-icon {
+    font-size: 12px;
+    color: var(--gray);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .speaker-card.open .expand-icon { transform: rotate(180deg); }
+
+  /* Task body */
+  .card-body {
+    display: none;
+    border-top: 1px solid var(--border);
+  }
+  .speaker-card.open .card-body { display: block; }
+
+  .task-category { border-bottom: 1px solid var(--border); }
+  .task-category:last-child { border-bottom: none; }
+  .category-header {
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    background: var(--gray-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .category-count { font-weight: 600; font-size: 11px; }
+
+  .task-item {
+    padding: 7px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+  }
+  .task-item:last-child { border-bottom: none; }
+  .task-item:hover { background: #fafafa; }
+  .task-item.done { opacity: 0.5; }
+  .task-item.done .task-name { text-decoration: line-through; }
+  .task-item.custom { background: #fffbeb; }
+
+  .task-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    background: white;
+  }
+  .task-check:hover { border-color: var(--crimson); }
+  .task-check.checked {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+  }
+  .task-check.checked::after { content: '\2713'; font-size: 12px; font-weight: 700; }
+
+  .task-name { flex: 1; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .task-note { font-size: 11px; color: var(--text-secondary); font-style: italic; margin-left: 4px; }
+
+  .task-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .task-badge.claude { background: var(--green-bg); color: var(--green); }
+  .task-badge.assist { background: var(--yellow-bg); color: var(--yellow); }
+  .task-badge.human { background: var(--gray-bg); color: var(--gray); }
+
+  .task-owner {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    min-width: 24px;
+    text-align: right;
+  }
+
+  .task-delete {
+    font-size: 14px;
+    color: #ccc;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    padding: 2px;
+  }
+  .task-delete:hover { color: var(--urgent); }
+
+  /* Legend */
+  .legend {
+    padding: 12px 24px;
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+    background: white;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* Toggle past */
+  .toggle-past {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-past input { cursor: pointer; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .modal-field { margin-bottom: 12px; }
+  .modal-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+  }
+  .modal-field input, .modal-field select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .modal-field input:focus, .modal-field select:focus { outline: none; border-color: var(--crimson); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+  .modal-actions button {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .modal-actions button.primary { background: var(--crimson); color: white; border-color: var(--crimson); }
+  .modal-actions button:hover { opacity: 0.85; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--text);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    z-index: 1000;
+    pointer-events: none;
+    max-width: 300px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Mobile */
+  @media (max-width: 700px) {
+    .header { padding: 12px 16px; }
+    .header h1 { font-size: 17px; }
+    .timeline-section { padding: 12px 16px; }
+    .filters { padding: 10px 16px; }
+    .cards { padding: 16px; gap: 10px; }
+    .card-header { padding: 12px; }
+    .task-item { padding: 7px 12px; }
+    .category-header { padding: 8px 12px; }
+    .progress-mini { width: 70px; }
+    .card-info h3 { font-size: 14px; }
+    .card-info .meta { font-size: 11px; }
+    .filter-btn { padding: 4px 8px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>HBS Speaker Event Tracker</h1>
+    <div class="header-sub">Music & Entertainment Club — Spring 2026</div>
+  </div>
+  <div class="header-right">
+    <label class="toggle-past"><input type="checkbox" id="showPast" onchange="toggleShowPast()"> Show past</label>
+    <div class="header-stat" id="stat-events"><strong>0</strong> events</div>
+    <div class="header-stat" id="stat-tasks"><strong>0</strong>/<strong>0</strong> tasks</div>
+    <button class="btn-header" onclick="openAddModal()">+ Add Task</button>
+    <button class="btn-header" onclick="exportStatus()">Export</button>
+  </div>
+</div>
+
+<div class="timeline-section">
+  <div class="timeline-label">Event Timeline</div>
+  <div class="timeline" id="timeline">
+    <div class="timeline-track"></div>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="filter-group">
+    <span class="filter-group-label">Type</span>
+    <button class="filter-btn active" data-filter="type" data-value="all">All</button>
+    <button class="filter-btn" data-filter="type" data-value="speaker">Speakers</button>
+    <button class="filter-btn" data-filter="type" data-value="tabletalk">Table Talks</button>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-group-label">Owner</span>
+    <button class="filter-btn active" data-filter="owner" data-value="all">All</button>
+    <button class="filter-btn" data-filter="owner" data-value="PS">PS</button>
+    <button class="filter-btn" data-filter="owner" data-value="Marketing">Mktg</button>
+    <button class="filter-btn" data-filter="owner" data-value="Logistics">Log</button>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-group-label">Auto</span>
+    <button class="filter-btn active" data-filter="auto" data-value="all">All</button>
+    <button class="filter-btn" data-filter="auto" data-value="claude">Claude</button>
+    <button class="filter-btn" data-filter="auto" data-value="assist">Assist</button>
+    <button class="filter-btn" data-filter="auto" data-value="human">Human</button>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-group-label">Status</span>
+    <button class="filter-btn active" data-filter="status" data-value="all">All</button>
+    <button class="filter-btn" data-filter="status" data-value="todo">To Do</button>
+    <button class="filter-btn" data-filter="status" data-value="done">Done</button>
+  </div>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--crimson-light);border:1px solid var(--crimson)"></div> Speaker Event</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--teal-light);border:1px solid var(--teal)"></div> Table Talk</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green-bg);border:1px solid var(--green)"></div> Claude can do</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--yellow-bg);border:1px solid var(--yellow)"></div> Claude assist</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--gray-bg);border:1px solid var(--gray)"></div> Human</div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h2>Add Task</h2>
+    <div class="modal-field">
+      <label>Task Name</label>
+      <input type="text" id="newTaskName" placeholder="e.g. Send parking pass">
+    </div>
+    <div class="modal-field">
+      <label>Event</label>
+      <select id="newTaskEvent"></select>
+    </div>
+    <div class="modal-field">
+      <label>Category</label>
+      <select id="newTaskCategory">
+        <option value="Outreach">Outreach</option>
+        <option value="HBS Admin">HBS Admin</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Promotion">Promotion</option>
+        <option value="Moderator Prep">Moderator Prep</option>
+        <option value="Speaker Prep">Speaker Prep</option>
+        <option value="Advance Logistics">Advance Logistics</option>
+        <option value="Day of Logistics">Day of Logistics</option>
+        <option value="Post-Event">Post-Event</option>
+        <option value="Table Talk Logistics">Table Talk Logistics</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label>Owner</label>
+      <select id="newTaskOwner">
+        <option value="PS">PS</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Logistics">Logistics</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeAddModal()">Cancel</button>
+      <button class="primary" onclick="addCustomTask()">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────
+const allEvents = [
+  // Speaker Events
+  { id: 'kaskade', name: 'Kaskade', role: 'DJ', date: '2026-02-12', time: '5pm', location: 'Aldrich 209', eventType: 'speaker' },
+  { id: 'gaurav', name: 'Gaurav Shirole', role: 'Future Forward Co-Founder', date: '2026-02-17', time: '4pm', location: 'Aldrich 107', eventType: 'speaker' },
+  { id: 'carletta', name: 'Carletta Higginson', role: 'EVP & CDO, Warner Music', date: '2026-02-19', time: '5pm', location: 'Hawes 203', eventType: 'speaker' },
+  { id: 'jimjomo', name: 'Jim / Jomo', role: 'Bowery Presents Founders', date: '2026-02-25', time: '5pm', location: 'Hawes 202', eventType: 'speaker' },
+  { id: 'jeremy', name: 'Jeremy Sirota', role: 'Outgoing CEO, MERLIN', date: '2026-02-26', time: '5pm', location: 'Aldrich 211', eventType: 'speaker' },
+  { id: 'paul', name: 'Paul Caine', role: 'CEO, On Location', date: '2026-03-05', time: '4-6pm', location: 'Hawes 203', eventType: 'speaker' },
+  { id: 'rob', name: 'Rob Jonas', role: 'CEO, Luminate', date: '2026-03-26', time: '4-6pm', location: 'Hawes 203', eventType: 'speaker' },
+  { id: 'lila', name: 'Lila Snyder', role: 'CEO, Bose', date: '2026-04-20', time: '4-6pm', location: 'Hawes 202', eventType: 'speaker' },
+  // Table Talks (upcoming, with dates, not done)
+  { id: 'tt_goldin', name: 'Claudia Goldin', role: 'Nobel Prize Economist, Harvard', date: '2026-02-17', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_dunn', name: 'Jeffrey Dunn', role: 'Former CEO, Sesame Workshop', date: '2026-02-18', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_higginson', name: 'Carletta Higginson', role: 'EVP & CDO, Warner Music', date: '2026-02-19', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_jimjomo', name: 'Jim / Jomo', role: 'Bowery Presents Founders', date: '2026-02-25', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_sirota', name: 'Jeremy Sirota', role: 'Outgoing CEO, MERLIN', date: '2026-02-26', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_sullivan', name: 'Jake Sullivan', role: 'Former National Security Advisor', date: '2026-03-03', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_caine', name: 'Paul Caine', role: 'CEO, On Location', date: '2026-03-05', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_strickler', name: 'Yancey Strickler', role: 'Kickstarter Founder', date: '2026-03-24', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_jonas', name: 'Rob Jonas', role: 'CEO, Luminate', date: '2026-03-26', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_foxx', name: 'Anthony Foxx', role: 'Former US Transportation Secretary', date: '2026-04-07', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_pritzker', name: 'Penny Pritzker', role: 'PSP Partners, Former Commerce Secretary', date: '2026-04-10', time: '4-5pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_carroll', name: 'Cynthia Carroll', role: 'Former CEO, Anglo American', date: '2026-04-16', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_snyder', name: 'Lila Snyder', role: 'CEO, Bose', date: '2026-04-20', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+  { id: 'tt_kelly', name: 'Mary Louise Kelly', role: 'NPR Broadcaster', date: '2026-04-26', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
+];
+
+// Speaker tasks (template)
+const speakerTasks = [
+  { id: 'outreach_1', name: 'Speaker outreach', category: 'Outreach', owner: 'PS', auto: 'human' },
+  { id: 'outreach_2', name: 'Schedule', category: 'Outreach', owner: 'PS', auto: 'human' },
+  { id: 'outreach_3', name: 'Confirm involvement in extras', category: 'Outreach', owner: 'PS', auto: 'human' },
+  { id: 'admin_1', name: 'Submit HBS VIP notification', category: 'HBS Admin', owner: 'Marketing', auto: 'assist' },
+  { id: 'admin_2', name: 'Book + confirm room', category: 'HBS Admin', owner: 'Marketing', auto: 'human' },
+  { id: 'mktg_1', name: 'Generate flyer', category: 'Marketing', owner: 'Marketing', auto: 'claude' },
+  { id: 'mktg_2', name: 'Speaker blurb', category: 'Marketing', owner: 'Marketing', auto: 'claude' },
+  { id: 'mktg_3', name: 'Create Luma', category: 'Marketing', owner: 'Marketing', auto: 'assist' },
+  { id: 'promo_1', name: 'ECs WhatsApp', category: 'Promotion', owner: 'PS', auto: 'assist' },
+  { id: 'promo_2', name: 'RCs WhatsApp', category: 'Promotion', owner: 'Marketing', auto: 'assist' },
+  { id: 'promo_3', name: 'HLS RAP', category: 'Promotion', owner: 'Marketing', auto: 'assist' },
+  { id: 'promo_4', name: 'HKS Culture program', category: 'Promotion', owner: 'Marketing', auto: 'assist' },
+  { id: 'promo_5', name: 'Berklee', category: 'Promotion', owner: 'Marketing', auto: 'assist' },
+  { id: 'mod_1', name: 'Research speaker', category: 'Moderator Prep', owner: 'PS', auto: 'claude' },
+  { id: 'mod_2', name: 'Draft questions', category: 'Moderator Prep', owner: 'PS', auto: 'claude' },
+  { id: 'sprep_1', name: 'Send run of show', category: 'Speaker Prep', owner: 'PS', auto: 'claude' },
+  { id: 'sprep_2', name: 'Send briefing doc', category: 'Speaker Prep', owner: 'PS', auto: 'claude', note: 'Audience, format, timing' },
+  { id: 'sprep_3', name: 'Send draft questions', category: 'Speaker Prep', owner: 'PS', auto: 'claude' },
+  { id: 'adv_1', name: 'Confirm tour of College', category: 'Advance Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'adv_2', name: 'Confirm Table Talk', category: 'Advance Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'adv_3', name: 'Coordinate class visit', category: 'Advance Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'adv_4', name: 'Confirm photographer', category: 'Advance Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'day_1', name: 'Meet speaker on arrival', category: 'Day of Logistics', owner: 'PS', auto: 'human' },
+  { id: 'day_2', name: 'RSVP Check-Ins', category: 'Day of Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'day_3', name: 'Water bottles', category: 'Day of Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'day_4', name: 'High chairs', category: 'Day of Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'day_5', name: 'A/V', category: 'Day of Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'day_6', name: 'Save space for speaker team', category: 'Day of Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'day_7', name: 'Purchase small gift', category: 'Day of Logistics', owner: 'Logistics', auto: 'human' },
+  { id: 'post_1', name: 'Thank you note', category: 'Post-Event', owner: 'PS', auto: 'claude' },
+  { id: 'post_2', name: 'Share photos', category: 'Post-Event', owner: 'PS', auto: 'assist' },
+];
+
+// Table Talk tasks
+const tableTalkTasks = [
+  { id: 'tt_cal', name: 'Send calendar hold to guest', category: 'Table Talk Logistics', owner: 'PS', auto: 'assist' },
+  { id: 'tt_checkin', name: 'Check-in week of event with logistics', category: 'Table Talk Logistics', owner: 'PS', auto: 'human' },
+  { id: 'tt_blurb', name: 'Draft email blurb', category: 'Table Talk Logistics', owner: 'PS', auto: 'claude' },
+  { id: 'tt_participants', name: 'Send cal hold to 12 participants', category: 'Table Talk Logistics', owner: 'PS', auto: 'human' },
+];
+
+function getTasksForEvent(ev) {
+  return ev.eventType === 'tabletalk' ? tableTalkTasks : speakerTasks;
+}
+
+// ── STATE ─────────────────────────────────────────────────
+const STORAGE_KEY = 'hbs-tracker-v2';
+let state = loadState();
+let filters = { owner: 'all', auto: 'all', status: 'all', type: 'all' };
+let selectedEvent = null;
+let showPast = false;
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migrate: ensure all events have entries
+      allEvents.forEach(ev => {
+        if (!parsed.tasks) parsed.tasks = {};
+        if (!parsed.tasks[ev.id]) {
+          parsed.tasks[ev.id] = {};
+          getTasksForEvent(ev).forEach(t => { parsed.tasks[ev.id][t.id] = false; });
+        }
+      });
+      if (!parsed.customTasks) parsed.customTasks = {};
+      return parsed;
+    }
+  } catch(e) {}
+  const s = { tasks: {}, customTasks: {} };
+  allEvents.forEach(ev => {
+    s.tasks[ev.id] = {};
+    getTasksForEvent(ev).forEach(t => { s.tasks[ev.id][t.id] = false; });
+  });
+  return s;
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+const today = new Date();
+today.setHours(0,0,0,0);
+
+function parseDate(d) { return new Date(d + 'T00:00:00'); }
+function daysUntil(dateStr) { return Math.ceil((parseDate(dateStr) - today) / (1000*60*60*24)); }
+function monthName(dateStr) { return parseDate(dateStr).toLocaleString('en-US', { month: 'short' }).toUpperCase(); }
+function dayNum(dateStr) { return parseDate(dateStr).getDate(); }
+function formatDate(dateStr) { return parseDate(dateStr).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+
+function getAllTasksForEvent(ev) {
+  const base = getTasksForEvent(ev);
+  const custom = state.customTasks[ev.id] || [];
+  return [...base, ...custom];
+}
+
+function countDone(eventId) {
+  const ev = allEvents.find(e => e.id === eventId);
+  const allTasks = getAllTasksForEvent(ev);
+  let done = 0, total = 0;
+  allTasks.forEach(t => {
+    if (!passesFilter(t)) return;
+    total++;
+    if (state.tasks[eventId] && state.tasks[eventId][t.id]) done++;
+  });
+  return { done, total };
+}
+
+function passesFilter(task) {
+  if (filters.owner !== 'all' && task.owner !== filters.owner) return false;
+  if (filters.auto !== 'all' && task.auto !== filters.auto) return false;
+  return true;
+}
+
+function toggleShowPast() {
+  showPast = document.getElementById('showPast').checked;
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function render() {
+  renderTimeline();
+  renderCards();
+  renderStats();
+}
+
+function renderTimeline() {
+  const el = document.getElementById('timeline');
+  el.innerHTML = '<div class="timeline-track"></div>';
+
+  const visibleEvents = allEvents.filter(e => showPast || daysUntil(e.date) >= 0);
+  if (visibleEvents.length === 0) return;
+
+  const dates = visibleEvents.map(s => parseDate(s.date));
+  const minDate = new Date(Math.min(...dates, today));
+  const maxDate = new Date(Math.max(...dates));
+  minDate.setDate(minDate.getDate() - 5);
+  maxDate.setDate(maxDate.getDate() + 5);
+  const range = maxDate - minDate;
+
+  const todayPct = Math.max(0, Math.min(100, ((today - minDate) / range) * 100));
+  const todayEl = document.createElement('div');
+  todayEl.className = 'timeline-today';
+  todayEl.style.left = `calc(24px + (100% - 48px) * ${todayPct / 100})`;
+  el.appendChild(todayEl);
+
+  visibleEvents.forEach(ev => {
+    const d = parseDate(ev.date);
+    const pct = ((d - minDate) / range) * 100;
+    const dot = document.createElement('div');
+    const days = daysUntil(ev.date);
+    let cls = 'timeline-event';
+    if (ev.eventType === 'tabletalk') cls += ' tt';
+    if (days < 0) cls += ' past';
+    if (selectedEvent === ev.id) cls += ' active';
+    dot.className = cls;
+    dot.style.left = `calc(24px + (100% - 48px) * ${pct / 100})`;
+    dot.title = `${ev.name} — ${formatDate(ev.date)} (${ev.eventType === 'tabletalk' ? 'Table Talk' : 'Speaker'})`;
+    dot.onclick = () => { selectedEvent = selectedEvent === ev.id ? null : ev.id; render(); };
+    const label = document.createElement('div');
+    label.className = 'timeline-event-label';
+    label.textContent = ev.name.split(' ')[0];
+    dot.appendChild(label);
+    el.appendChild(dot);
+  });
+}
+
+function renderCards() {
+  const container = document.getElementById('cards');
+  container.innerHTML = '';
+
+  let events = [...allEvents].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+
+  // Type filter
+  if (filters.type !== 'all') {
+    events = events.filter(e => e.eventType === (filters.type === 'tabletalk' ? 'tabletalk' : 'speaker'));
+  }
+
+  events.forEach(ev => {
+    if (selectedEvent && selectedEvent !== ev.id) return;
+
+    const days = daysUntil(ev.date);
+    const isPast = days < 0;
+    const { done, total } = countDone(ev.id);
+    const pct = total > 0 ? (done / total * 100) : 0;
+    const isUrgent = !isPast && days <= 7 && done < total;
+    const isTT = ev.eventType === 'tabletalk';
+
+    const card = document.createElement('div');
+    let cls = 'speaker-card';
+    if (isUrgent && !isTT) cls += ' urgent';
+    if (isTT) cls += ' table-talk';
+    if (isPast && !showPast) cls += ' hidden-past';
+    card.className = cls;
+    card.id = `card-${ev.id}`;
+
+    let countdownText, countdownClass;
+    if (days < 0) { countdownText = 'Passed'; countdownClass = 'past'; }
+    else if (days === 0) { countdownText = 'TODAY'; countdownClass = 'urgent'; }
+    else if (days <= 7) { countdownText = `${days}d`; countdownClass = 'urgent'; }
+    else if (days <= 21) { countdownText = `${days}d`; countdownClass = 'soon'; }
+    else { countdownText = `${days}d`; countdownClass = 'normal'; }
+
+    const typeBadge = isTT
+      ? '<span class="event-type-badge tabletalk">Table Talk</span>'
+      : '<span class="event-type-badge speaker">Speaker</span>';
+
+    card.innerHTML = `
+      <div class="card-header" onclick="toggleCard('${ev.id}')">
+        <div class="card-left">
+          <div class="card-date-badge">
+            <div class="month">${monthName(ev.date)}</div>
+            <div class="day">${dayNum(ev.date)}</div>
+          </div>
+          <div class="card-info">
+            <h3>${ev.name}</h3>
+            <div class="meta">
+              <span>${ev.role}</span>
+              <span>${ev.time}${ev.location !== 'TBD' ? ' \u00b7 ' + ev.location : ''}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-right">
+          ${typeBadge}
+          <div class="countdown ${countdownClass}">${countdownText}</div>
+          <div class="progress-mini">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill${pct === 100 ? ' complete' : ''}" style="width:${pct}%"></div>
+            </div>
+            <span class="progress-text">${done}/${total}</span>
+          </div>
+          <span class="expand-icon">\u25BC</span>
+        </div>
+      </div>
+      <div class="card-body">${renderTaskBody(ev)}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderTaskBody(ev) {
+  const allTasks = getAllTasksForEvent(ev);
+  const categories = [];
+  const catOrder = ev.eventType === 'tabletalk'
+    ? ['Table Talk Logistics']
+    : ['Outreach', 'HBS Admin', 'Marketing', 'Promotion', 'Moderator Prep', 'Speaker Prep', 'Advance Logistics', 'Day of Logistics', 'Post-Event'];
+
+  // Also include any custom categories
+  const customCats = new Set();
+  (state.customTasks[ev.id] || []).forEach(t => { if (!catOrder.includes(t.category)) customCats.add(t.category); });
+  const fullCatOrder = [...catOrder, ...customCats];
+
+  fullCatOrder.forEach(cat => {
+    const catTasks = allTasks.filter(t => t.category === cat && passesFilter(t));
+    if (catTasks.length === 0) return;
+
+    let rows = catTasks;
+    if (filters.status === 'done') rows = catTasks.filter(t => state.tasks[ev.id] && state.tasks[ev.id][t.id]);
+    else if (filters.status === 'todo') rows = catTasks.filter(t => !(state.tasks[ev.id] && state.tasks[ev.id][t.id]));
+    if (rows.length === 0) return;
+
+    const doneCat = catTasks.filter(t => state.tasks[ev.id] && state.tasks[ev.id][t.id]).length;
+
+    const taskRows = rows.map(t => {
+      const isDone = state.tasks[ev.id] && state.tasks[ev.id][t.id];
+      const autoLabel = t.auto === 'claude' ? 'CLAUDE' : t.auto === 'assist' ? 'ASSIST' : 'HUMAN';
+      const noteHtml = t.note ? `<span class="task-note">(${t.note})</span>` : '';
+      const isCustom = t.isCustom;
+      const deleteBtn = isCustom ? `<span class="task-delete" onclick="deleteCustomTask('${ev.id}','${t.id}',event)" title="Remove">\u00d7</span>` : '';
+      return `
+        <div class="task-item${isDone ? ' done' : ''}${isCustom ? ' custom' : ''}">
+          <div class="task-check${isDone ? ' checked' : ''}" onclick="toggleTask('${ev.id}','${t.id}',event)"></div>
+          <span class="task-name">${t.name}${noteHtml}</span>
+          <span class="task-badge ${t.auto}">${autoLabel}</span>
+          <span class="task-owner">${t.owner === 'Logistics' ? 'LOG' : t.owner === 'Marketing' ? 'MKT' : t.owner}</span>
+          ${deleteBtn}
+        </div>
+      `;
+    }).join('');
+
+    categories.push(`
+      <div class="task-category">
+        <div class="category-header">
+          <span>${cat}</span>
+          <span class="category-count">${doneCat}/${catTasks.length}</span>
+        </div>
+        ${taskRows}
+      </div>
+    `);
+  });
+
+  return categories.join('');
+}
+
+function renderStats() {
+  let totalTasks = 0, totalDone = 0, visibleEvents = 0;
+  allEvents.forEach(ev => {
+    const days = daysUntil(ev.date);
+    const isPast = days < 0;
+    if (isPast && !showPast) return;
+    if (filters.type !== 'all' && ev.eventType !== (filters.type === 'tabletalk' ? 'tabletalk' : 'speaker')) return;
+    visibleEvents++;
+    const allTasks = getAllTasksForEvent(ev);
+    allTasks.forEach(t => {
+      if (!passesFilter(t)) return;
+      totalTasks++;
+      if (state.tasks[ev.id] && state.tasks[ev.id][t.id]) totalDone++;
+    });
+  });
+
+  document.getElementById('stat-events').innerHTML = `<strong>${visibleEvents}</strong> events`;
+  document.getElementById('stat-tasks').innerHTML = `<strong>${totalDone}</strong>/<strong>${totalTasks}</strong> tasks`;
+}
+
+// ── INTERACTIONS ──────────────────────────────────────────
+function toggleCard(eventId) {
+  document.getElementById(`card-${eventId}`).classList.toggle('open');
+}
+
+function toggleTask(eventId, taskId, event) {
+  event.stopPropagation();
+  if (!state.tasks[eventId]) state.tasks[eventId] = {};
+  state.tasks[eventId][taskId] = !state.tasks[eventId][taskId];
+  saveState();
+  const wasOpen = document.getElementById(`card-${eventId}`).classList.contains('open');
+  render();
+  if (wasOpen) document.getElementById(`card-${eventId}`).classList.add('open');
+  showToast(state.tasks[eventId][taskId] ? 'Task completed' : 'Task unmarked');
+}
+
+// Add task modal
+function openAddModal() {
+  const sel = document.getElementById('newTaskEvent');
+  sel.innerHTML = '';
+  const sorted = [...allEvents].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  sorted.forEach(ev => {
+    const days = daysUntil(ev.date);
+    if (days < 0 && !showPast) return;
+    const prefix = ev.eventType === 'tabletalk' ? '[TT] ' : '';
+    const opt = document.createElement('option');
+    opt.value = ev.id;
+    opt.textContent = `${prefix}${ev.name} (${formatDate(ev.date)})`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('newTaskName').value = '';
+  document.getElementById('addModal').classList.add('show');
+  document.getElementById('newTaskName').focus();
+}
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.remove('show');
+}
+
+function addCustomTask() {
+  const name = document.getElementById('newTaskName').value.trim();
+  const eventId = document.getElementById('newTaskEvent').value;
+  const category = document.getElementById('newTaskCategory').value;
+  const owner = document.getElementById('newTaskOwner').value;
+
+  if (!name) { showToast('Please enter a task name'); return; }
+
+  const id = 'custom_' + Date.now();
+  if (!state.customTasks[eventId]) state.customTasks[eventId] = [];
+  state.customTasks[eventId].push({ id, name, category, owner, auto: 'human', isCustom: true });
+  if (!state.tasks[eventId]) state.tasks[eventId] = {};
+  state.tasks[eventId][id] = false;
+  saveState();
+  closeAddModal();
+  render();
+  const card = document.getElementById(`card-${eventId}`);
+  if (card) card.classList.add('open');
+  showToast('Task added');
+}
+
+function deleteCustomTask(eventId, taskId, event) {
+  event.stopPropagation();
+  if (!state.customTasks[eventId]) return;
+  state.customTasks[eventId] = state.customTasks[eventId].filter(t => t.id !== taskId);
+  delete state.tasks[eventId][taskId];
+  saveState();
+  const wasOpen = document.getElementById(`card-${eventId}`).classList.contains('open');
+  render();
+  if (wasOpen) document.getElementById(`card-${eventId}`).classList.add('open');
+  showToast('Task removed');
+}
+
+// Filters
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const filterType = btn.dataset.filter;
+    filters[filterType] = btn.dataset.value;
+    document.querySelectorAll(`.filter-btn[data-filter="${filterType}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+});
+
+// Close modal on overlay click
+document.getElementById('addModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('addModal')) closeAddModal();
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAddModal();
+  if (e.key === 'Enter' && document.getElementById('addModal').classList.contains('show')) addCustomTask();
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+function exportStatus() {
+  let output = 'HBS SPEAKER EVENT TRACKER \u2014 Status Export\n';
+  output += `Generated: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+  output += '\u2550'.repeat(60) + '\n\n';
+
+  const sorted = [...allEvents].sort((a, b) => parseDate(a.date) - parseDate(b.date));
+  sorted.forEach(ev => {
+    const days = daysUntil(ev.date);
+    if (days < 0 && !showPast) return;
+    const allTasks = getAllTasksForEvent(ev);
+    const done = allTasks.filter(t => state.tasks[ev.id] && state.tasks[ev.id][t.id]).length;
+    const prefix = ev.eventType === 'tabletalk' ? '[Table Talk] ' : '';
+    output += `${prefix}${ev.name} \u2014 ${formatDate(ev.date)} ${ev.time}${ev.location !== 'TBD' ? ' @ ' + ev.location : ''}\n`;
+    output += `  Progress: ${done}/${allTasks.length} tasks (${days >= 0 ? days + ' days away' : 'event passed'})\n`;
+
+    const incomplete = allTasks.filter(t => !(state.tasks[ev.id] && state.tasks[ev.id][t.id]));
+    if (incomplete.length > 0) {
+      output += '  Remaining:\n';
+      incomplete.forEach(t => { output += `    [ ] ${t.name} (${t.owner})\n`; });
+    } else {
+      output += '  \u2713 All tasks complete!\n';
+    }
+    output += '\n';
+  });
+
+  navigator.clipboard.writeText(output).then(() => {
+    showToast('Status copied to clipboard');
+  }).catch(() => {
+    const blob = new Blob([output], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'hbs-tracker-export.txt';
+    a.click();
+    showToast('Status downloaded');
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
