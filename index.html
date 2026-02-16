@@ -134,6 +134,12 @@
   .timeline-event.tt { background: var(--teal); }
   .timeline-event.tt.past { background: #9ca3af; }
   .timeline-event.active { background: var(--green); box-shadow: 0 0 0 4px rgba(45,138,78,0.25); }
+  .timeline-event.merged {
+    background: linear-gradient(135deg, var(--crimson) 0%, var(--crimson) 50%, var(--teal) 50%, var(--teal) 100%);
+  }
+  .timeline-event.merged.past {
+    background: linear-gradient(135deg, var(--gray) 0%, var(--gray) 50%, #9ca3af 50%, #9ca3af 100%);
+  }
   .timeline-event-label {
     position: absolute;
     top: 44px;
@@ -599,8 +605,12 @@ const allEvents = [
   { id: 'jimjomo', name: 'Jim / Jomo', role: 'Bowery Presents Founders', date: '2026-02-25', time: '5pm', location: 'Hawes 202', eventType: 'speaker' },
   { id: 'jeremy', name: 'Jeremy Sirota', role: 'Outgoing CEO, MERLIN', date: '2026-02-26', time: '5pm', location: 'Aldrich 211', eventType: 'speaker' },
   { id: 'paul', name: 'Paul Caine', role: 'CEO, On Location', date: '2026-03-05', time: '4-6pm', location: 'Hawes 203', eventType: 'speaker' },
+  { id: 'adriatique', name: 'Adriatique & Marvin Weymeersch', role: 'Electronic Duo & Hangar Founder', date: '2026-03-24', time: '5pm', location: 'TBD', eventType: 'speaker' },
+  { id: 'yancey', name: 'Yancey Strickler', role: 'Kickstarter Founder', date: '2026-03-25', time: '5pm', location: 'TBD', eventType: 'speaker' },
   { id: 'rob', name: 'Rob Jonas', role: 'CEO, Luminate', date: '2026-03-26', time: '4-6pm', location: 'Hawes 203', eventType: 'speaker' },
+  { id: 'mikevan', name: 'Mike Van', role: 'CEO, Billboard', date: '2026-04-07', time: '5pm', location: 'TBD', eventType: 'speaker' },
   { id: 'lila', name: 'Lila Snyder', role: 'CEO, Bose', date: '2026-04-20', time: '4-6pm', location: 'Hawes 202', eventType: 'speaker' },
+  { id: 'hughevans', name: 'Hugh Evans', role: 'Global Citizen Founder', date: '2026-04-21', time: '5pm', location: 'TBD', eventType: 'speaker' },
   // Table Talks (upcoming, with dates, not done)
   { id: 'tt_goldin', name: 'Claudia Goldin', role: 'Nobel Prize Economist, Harvard', date: '2026-02-17', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
   { id: 'tt_dunn', name: 'Jeffrey Dunn', role: 'Former CEO, Sesame Workshop', date: '2026-02-18', time: '6-7:30pm', location: 'TBD', eventType: 'tabletalk' },
@@ -767,22 +777,80 @@ function renderTimeline() {
   todayEl.style.left = `calc(24px + (100% - 48px) * ${todayPct / 100})`;
   el.appendChild(todayEl);
 
+  // Group events by person name to merge duplicates
+  const eventsByPerson = {};
   visibleEvents.forEach(ev => {
-    const d = parseDate(ev.date);
+    if (!eventsByPerson[ev.name]) {
+      eventsByPerson[ev.name] = [];
+    }
+    eventsByPerson[ev.name].push(ev);
+  });
+
+  // Render merged dots
+  Object.entries(eventsByPerson).forEach(([name, events]) => {
+    // Use the earliest event date for positioning
+    const sortedEvents = events.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+    const primaryEvent = sortedEvents[0];
+
+    const d = parseDate(primaryEvent.date);
     const pct = ((d - minDate) / range) * 100;
     const dot = document.createElement('div');
-    const days = daysUntil(ev.date);
+    const days = daysUntil(primaryEvent.date);
+
+    // Determine class - if multiple events, show as merged
     let cls = 'timeline-event';
-    if (ev.eventType === 'tabletalk') cls += ' tt';
+    const hasTT = events.some(e => e.eventType === 'tabletalk');
+    const hasSpeaker = events.some(e => e.eventType === 'speaker');
+
+    if (events.length > 1) {
+      // Merged event - show both colors
+      cls += ' merged';
+    } else if (primaryEvent.eventType === 'tabletalk') {
+      cls += ' tt';
+    }
+
     if (days < 0) cls += ' past';
-    if (selectedEvent === ev.id) cls += ' active';
+
+    // Check if any of the person's events are selected
+    const isSelected = events.some(e => selectedEvent === e.id);
+    if (isSelected) cls += ' active';
+
     dot.className = cls;
     dot.style.left = `calc(24px + (100% - 48px) * ${pct / 100})`;
-    dot.title = `${ev.name} — ${formatDate(ev.date)} (${ev.eventType === 'tabletalk' ? 'Table Talk' : 'Speaker'})`;
-    dot.onclick = () => { selectedEvent = selectedEvent === ev.id ? null : ev.id; render(); };
+
+    // Build tooltip showing all events for this person
+    let tooltip = name;
+    if (events.length > 1) {
+      tooltip += '\n';
+      events.forEach(e => {
+        tooltip += `\n• ${formatDate(e.date)} — ${e.eventType === 'tabletalk' ? 'Table Talk' : 'Speaker'}`;
+      });
+    } else {
+      tooltip += ` — ${formatDate(primaryEvent.date)} (${primaryEvent.eventType === 'tabletalk' ? 'Table Talk' : 'Speaker'})`;
+    }
+    dot.title = tooltip;
+
+    // Click cycles through the person's events or clears selection
+    dot.onclick = () => {
+      if (events.length === 1) {
+        selectedEvent = selectedEvent === primaryEvent.id ? null : primaryEvent.id;
+      } else {
+        // Cycle through this person's events
+        const currentIndex = events.findIndex(e => e.id === selectedEvent);
+        if (currentIndex === -1) {
+          selectedEvent = events[0].id;
+        } else if (currentIndex === events.length - 1) {
+          selectedEvent = null; // Clear selection after cycling through all
+        } else {
+          selectedEvent = events[currentIndex + 1].id;
+        }
+      }
+      render();
+    };
+
     const label = document.createElement('div');
     label.className = 'timeline-event-label';
-    label.textContent = ev.name.split(' ')[0];
+    label.textContent = name.split(' ')[0];
     dot.appendChild(label);
     el.appendChild(dot);
   });
